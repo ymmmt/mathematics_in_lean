@@ -5,6 +5,7 @@ open Nat
 -- These are pieces of data.
 #check 2 + 2
 
+-- ℕ (\N, \nat, \bn)
 def f (x : ℕ) :=
   x + 3
 
@@ -30,6 +31,7 @@ theorem hard : FermatLastTheorem :=
 #check hard
 
 -- Here are some proofs.
+-- ↦ (\mapsto)
 example : ∀ m n : Nat, Even n → Even (m * n) := fun m n ⟨k, (hk : n = k + k)⟩ ↦
   have hmn : m * n = m * k + m * k := by rw [hk, mul_add]
   show ∃ l, m * n = l + l from ⟨_, hmn⟩
@@ -52,4 +54,3 @@ example : ∀ m n : Nat, Even n → Even (m * n) := by
 
 example : ∀ m n : Nat, Even n → Even (m * n) := by
   intros; simp [*, parity_simps]
-
