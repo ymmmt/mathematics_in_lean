@@ -109,14 +109,16 @@ example (a b : ℝ) : a - b = a + -b := by
 namespace MyRing
 variable {R : Type*} [Ring R]
 
-theorem self_sub (a : R) : a - a = 0 := by
-  sorry
+theorem self_sub (a : R) : a - a = 0 :=
+  calc
+    a - a = a + -a := sub_eq_add_neg a a
+    _ = 0 := add_neg_cancel a
 
 theorem one_add_one_eq_two : 1 + 1 = (2 : R) := by
   norm_num
 
 theorem two_mul (a : R) : 2 * a = a + a := by
-  sorry
+  rw [← one_add_one_eq_two, add_mul, one_mul]
 
 end MyRing
 
@@ -138,16 +140,41 @@ variable {G : Type*} [Group G]
 
 namespace MyGroup
 
+theorem mul_inv_cancel_left (a b : G) : a⁻¹ * (a * b ) = b := by
+  rw [← mul_assoc]
+  rw [inv_mul_cancel]
+  exact one_mul b
+
+-- ⁻¹ (\-1)
 theorem mul_inv_cancel (a : G) : a * a⁻¹ = 1 := by
-  sorry
+  calc
+    a * a⁻¹ = (a⁻¹)⁻¹ * (a⁻¹ * (a * a⁻¹)) :=
+      by rw [mul_inv_cancel_left (a⁻¹) (a * a⁻¹)]
+    _ = (a⁻¹)⁻¹ * (a⁻¹ * a * a⁻¹) :=
+      by rw [← mul_assoc (a⁻¹) a (a⁻¹)]
+    _ = (a⁻¹)⁻¹ * (1 * a⁻¹) := by
+      rw [inv_mul_cancel]
+    _ = (a⁻¹)⁻¹ * a⁻¹ := by
+      rw [one_mul]
+    _ = 1 := by exact inv_mul_cancel (a⁻¹)
 
 theorem mul_one (a : G) : a * 1 = a := by
-  sorry
+  rw [← inv_mul_cancel a, ← mul_assoc, mul_inv_cancel, one_mul]
+
+theorem mul_inv_cancel_right (a b : G) : a * b * b⁻¹ = a := by
+  rw [mul_assoc]
+  rw [mul_inv_cancel]
+  rw [mul_one]
 
 theorem mul_inv_rev (a b : G) : (a * b)⁻¹ = b⁻¹ * a⁻¹ := by
-  sorry
+  rw [← one_mul ((a * b)⁻¹)]
+  rw [← inv_mul_cancel b]
+  nth_rw 2 [← one_mul b]
+  rw [← inv_mul_cancel a]
+  rw [mul_assoc, mul_assoc (a⁻¹) a b, mul_assoc]
+  rw [mul_inv_cancel]
+  rw [mul_one]
 
 end MyGroup
 
 end
-
