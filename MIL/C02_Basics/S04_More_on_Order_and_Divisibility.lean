@@ -148,5 +148,3 @@ example : Nat.gcd m n = Nat.gcd n m := by
     exact (dvd_gcd_iff (gcd x y) y x).mpr ⟨hy, hx⟩
   exact dvd_antisymm (h m n) (h n m)
 end
-
-

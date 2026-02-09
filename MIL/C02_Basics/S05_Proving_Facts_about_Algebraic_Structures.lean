@@ -36,22 +36,97 @@ variable (x y z : α)
 #check (sup_le : x ≤ z → y ≤ z → x ⊔ y ≤ z)
 
 example : x ⊓ y = y ⊓ x := by
-  sorry
+  apply le_antisymm
+  · show x ⊓ y ≤ y ⊓ x
+    apply le_inf
+    · apply inf_le_right
+    · apply inf_le_left
+  · show y ⊓ x ≤ x ⊓ y
+    apply le_inf
+    · apply inf_le_right
+    · apply inf_le_left
 
 example : x ⊓ y ⊓ z = x ⊓ (y ⊓ z) := by
-  sorry
+  apply le_antisymm
+  · show x ⊓ y ⊓ z ≤ x ⊓ (y ⊓ z)
+    apply le_inf
+    · trans x ⊓ y
+      apply inf_le_left
+      apply inf_le_left
+    · apply le_inf
+      · trans x ⊓ y
+        apply inf_le_left
+        apply inf_le_right
+      · apply inf_le_right
+  · show x ⊓ (y ⊓ z) ≤ x ⊓ y ⊓ z
+    apply le_inf
+    · apply le_inf
+      · apply inf_le_left
+      · trans y ⊓ z
+        apply inf_le_right
+        apply inf_le_left
+    · trans y ⊓ z
+      apply inf_le_right
+      apply inf_le_right
 
 example : x ⊔ y = y ⊔ x := by
-  sorry
+  apply le_antisymm
+  · show x ⊔ y ≤ y ⊔ x
+    apply sup_le
+    · apply le_sup_right
+    · apply le_sup_left
+  · show y ⊔ x ≤ x ⊔ y
+    apply sup_le
+    · apply le_sup_right
+    · apply le_sup_left
 
 example : x ⊔ y ⊔ z = x ⊔ (y ⊔ z) := by
-  sorry
+  apply le_antisymm
+  · show x ⊔ y ⊔ z ≤ x ⊔ (y ⊔ z)
+    apply sup_le
+    · apply sup_le
+      · apply le_sup_left
+      · trans y ⊔ z
+        · apply le_sup_left
+        · apply le_sup_right
+    · trans y ⊔ z
+      · apply le_sup_right
+      · apply le_sup_right
+  · show x ⊔ (y ⊔ z) ≤ x ⊔ y ⊔ z
+    apply sup_le
+    · trans x ⊔ y
+      · apply le_sup_left
+      · apply le_sup_left
+    · apply sup_le
+      · trans x ⊔ y
+        · apply le_sup_right
+        · apply le_sup_left
+      · apply le_sup_right
 
 theorem absorb1 : x ⊓ (x ⊔ y) = x := by
-  sorry
+  apply le_antisymm
+  · show x ⊓ (x ⊔ y) ≤ x
+    apply inf_le_left
+  · show x ≤ x ⊓ (x ⊔ y)
+    apply le_inf
+    · apply le_refl
+    · apply le_sup_left
+
+theorem my_sup_idem : x ⊔ x = x := by
+  apply le_antisymm
+  · apply sup_le
+    · apply le_refl
+    · apply le_refl
+  · apply le_sup_left
 
 theorem absorb2 : x ⊔ x ⊓ y = x := by
-  sorry
+  apply le_antisymm
+  · show x ⊔ x ⊓ y ≤ x
+    apply sup_le
+    · apply le_refl
+    · apply inf_le_left
+  · show x ≤ x ⊔ x ⊓ y
+    apply le_sup_left
 
 end
 
@@ -70,10 +145,69 @@ variable {α : Type*} [Lattice α]
 variable (a b c : α)
 
 example (h : ∀ x y z : α, x ⊓ (y ⊔ z) = x ⊓ y ⊔ x ⊓ z) : a ⊔ b ⊓ c = (a ⊔ b) ⊓ (a ⊔ c) := by
-  sorry
+  apply le_antisymm
+  · show a ⊔ b ⊓ c ≤ (a ⊔ b) ⊓ (a ⊔ c)
+    apply sup_le
+    · apply le_inf
+      · apply le_sup_left
+      · apply le_sup_left
+    · apply le_inf
+      · trans b
+        · apply inf_le_left
+        · apply le_sup_right
+      · trans c
+        · apply inf_le_right
+        · apply le_sup_right
+  · show (a ⊔ b) ⊓ (a ⊔ c) ≤ a ⊔ b ⊓ c
+    rw [h, inf_comm, h]
+    apply sup_le
+    · apply sup_le
+      · trans a
+        · apply inf_le_left
+        · apply le_sup_left
+      · trans a
+        · apply inf_le_left
+        · apply le_sup_left
+    · rw [inf_comm, h]
+      apply sup_le
+      · trans a
+        · apply inf_le_right
+        · apply le_sup_left
+      · rw [inf_comm]
+        apply le_sup_right
 
 example (h : ∀ x y z : α, x ⊔ y ⊓ z = (x ⊔ y) ⊓ (x ⊔ z)) : a ⊓ (b ⊔ c) = a ⊓ b ⊔ a ⊓ c := by
-  sorry
+  apply le_antisymm
+  . show a ⊓ (b ⊔ c) ≤ a ⊓ b ⊔ a ⊓ c
+    rw [h, sup_comm (a ⊓ b) a, h, sup_comm (a ⊓ b) c, h]
+    apply le_inf
+    . apply le_inf
+      · trans a
+        . apply inf_le_left
+        · apply le_sup_left
+      . trans a
+        . apply inf_le_left
+        . apply le_sup_left
+    . apply le_inf
+      . trans a
+        . apply inf_le_left
+        . apply le_sup_right
+      . rw [sup_comm]
+        trans c ⊔ b
+        . apply inf_le_right
+        . apply le_refl
+  . show a ⊓ b ⊔ a ⊓ c ≤ a ⊓ (b ⊔ c)
+    apply le_inf
+    . apply sup_le
+      . apply inf_le_left
+      . apply inf_le_left
+    . apply sup_le
+      . trans b
+        . apply inf_le_right
+        . apply le_sup_left
+      . trans c
+        . apply inf_le_right
+        . apply le_sup_right
 
 end
 
@@ -81,19 +215,40 @@ section
 variable {R : Type*} [Ring R] [PartialOrder R] [IsStrictOrderedRing R]
 variable (a b c : R)
 
-#check (add_le_add_left : a ≤ b → ∀ c, c + a ≤ c + b)
+#check (add_le_add_right : a ≤ b → ∀ c, c + a ≤ c + b)
 #check (mul_pos : 0 < a → 0 < b → 0 < a * b)
 
 #check (mul_nonneg : 0 ≤ a → 0 ≤ b → 0 ≤ a * b)
 
 example (h : a ≤ b) : 0 ≤ b - a := by
-  sorry
+  rw [← sub_self a]
+  rw [sub_eq_add_neg, sub_eq_add_neg]
+  apply add_le_add_left h
 
-example (h: 0 ≤ b - a) : a ≤ b := by
-  sorry
+example (h: 0 ≤ b - a) : a ≤ b :=
+  calc
+    a = 0 + a := (zero_add a).symm
+    _ ≤ (b - a) + a := add_le_add_left h a
+    -- _ = b + -a + a := by rw [sub_eq_add_neg]
+    -- _ = b + (-a + a) := by apply add_assoc
+    -- _ = b + 0 := by rw [neg_add_cancel]
+    -- _ = b := by apply add_zero
+    _ = b := by abel
 
-example (h : a ≤ b) (h' : 0 ≤ c) : a * c ≤ b * c := by
-  sorry
+example (hab : a ≤ b) (hc : 0 ≤ c) : a * c ≤ b * c := by
+  have hab' : 0 ≤ b - a :=
+    calc
+      0 = a + -a := by rw [add_neg_cancel]
+      _ ≤ b + -a := by apply add_le_add_left hab (- a)
+      _ = b - a := by rw [sub_eq_add_neg]
+  have : 0 ≤ b * c - a * c :=
+    calc
+      0 ≤ (b - a) * c := mul_nonneg hab' hc
+      _ = b * c - a * c := by apply sub_mul
+  have : 0 + a * c ≤ b * c - a * c + a * c := by
+    apply add_le_add_left this
+  rw [zero_add, sub_eq_add_neg, add_assoc, neg_add_cancel, add_zero] at this
+  assumption
 
 end
 
@@ -109,4 +264,3 @@ example (x y : X) : 0 ≤ dist x y := by
   sorry
 
 end
-
