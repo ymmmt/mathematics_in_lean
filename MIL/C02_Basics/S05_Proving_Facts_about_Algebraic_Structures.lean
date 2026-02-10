@@ -178,36 +178,36 @@ example (h : ∀ x y z : α, x ⊓ (y ⊔ z) = x ⊓ y ⊔ x ⊓ z) : a ⊔ b �
 
 example (h : ∀ x y z : α, x ⊔ y ⊓ z = (x ⊔ y) ⊓ (x ⊔ z)) : a ⊓ (b ⊔ c) = a ⊓ b ⊔ a ⊓ c := by
   apply le_antisymm
-  . show a ⊓ (b ⊔ c) ≤ a ⊓ b ⊔ a ⊓ c
+  · show a ⊓ (b ⊔ c) ≤ a ⊓ b ⊔ a ⊓ c
     rw [h, sup_comm (a ⊓ b) a, h, sup_comm (a ⊓ b) c, h]
     apply le_inf
-    . apply le_inf
+    · apply le_inf
       · trans a
-        . apply inf_le_left
+        · apply inf_le_left
         · apply le_sup_left
-      . trans a
-        . apply inf_le_left
-        . apply le_sup_left
-    . apply le_inf
-      . trans a
-        . apply inf_le_left
-        . apply le_sup_right
-      . rw [sup_comm]
+      · trans a
+        · apply inf_le_left
+        · apply le_sup_left
+    · apply le_inf
+      · trans a
+        · apply inf_le_left
+        · apply le_sup_right
+      · rw [sup_comm]
         trans c ⊔ b
-        . apply inf_le_right
-        . apply le_refl
-  . show a ⊓ b ⊔ a ⊓ c ≤ a ⊓ (b ⊔ c)
+        · apply inf_le_right
+        · apply le_refl
+  · show a ⊓ b ⊔ a ⊓ c ≤ a ⊓ (b ⊔ c)
     apply le_inf
-    . apply sup_le
-      . apply inf_le_left
-      . apply inf_le_left
-    . apply sup_le
-      . trans b
-        . apply inf_le_right
-        . apply le_sup_left
-      . trans c
-        . apply inf_le_right
-        . apply le_sup_right
+    · apply sup_le
+      · apply inf_le_left
+      · apply inf_le_left
+    · apply sup_le
+      · trans b
+        · apply inf_le_right
+        · apply le_sup_left
+      · trans c
+        · apply inf_le_right
+        · apply le_sup_right
 
 end
 
@@ -220,12 +220,12 @@ variable (a b c : R)
 
 #check (mul_nonneg : 0 ≤ a → 0 ≤ b → 0 ≤ a * b)
 
-example (h : a ≤ b) : 0 ≤ b - a := by
+theorem le_sub_of_le {a b : R} (h : a ≤ b) : 0 ≤ b - a := by
   rw [← sub_self a]
   rw [sub_eq_add_neg, sub_eq_add_neg]
   apply add_le_add_left h
 
-example (h: 0 ≤ b - a) : a ≤ b :=
+theorem le_of_le_sub {a b : R} (h: 0 ≤ b - a) : a ≤ b :=
   calc
     a = 0 + a := (zero_add a).symm
     _ ≤ (b - a) + a := add_le_add_left h a
@@ -235,20 +235,13 @@ example (h: 0 ≤ b - a) : a ≤ b :=
     -- _ = b := by apply add_zero
     _ = b := by abel
 
-example (hab : a ≤ b) (hc : 0 ≤ c) : a * c ≤ b * c := by
-  have hab' : 0 ≤ b - a :=
-    calc
-      0 = a + -a := by rw [add_neg_cancel]
-      _ ≤ b + -a := by apply add_le_add_left hab (- a)
-      _ = b - a := by rw [sub_eq_add_neg]
+example (h : a ≤ b) (h' : 0 ≤ c) : a * c ≤ b * c := by
+  have : 0 ≤ b - a := le_sub_of_le h
   have : 0 ≤ b * c - a * c :=
     calc
-      0 ≤ (b - a) * c := mul_nonneg hab' hc
+      0 ≤ (b - a) * c := mul_nonneg this h'
       _ = b * c - a * c := by apply sub_mul
-  have : 0 + a * c ≤ b * c - a * c + a * c := by
-    apply add_le_add_left this
-  rw [zero_add, sub_eq_add_neg, add_assoc, neg_add_cancel, add_zero] at this
-  assumption
+  exact le_of_le_sub this
 
 end
 
@@ -259,8 +252,15 @@ variable (x y z : X)
 #check (dist_self x : dist x x = 0)
 #check (dist_comm x y : dist x y = dist y x)
 #check (dist_triangle x y z : dist x z ≤ dist x y + dist y z)
+#check dist
 
 example (x y : X) : 0 ≤ dist x y := by
-  sorry
+  have : 0 ≤ 2 * dist x y := by
+    calc
+      0 = dist x x := (dist_self x).symm
+      _ ≤ dist x y + dist y x := dist_triangle x y x
+      _ ≤ dist x y + dist x y := by rw [dist_comm]
+      _ = 2 * dist x y := by ring
+  linarith
 
 end
