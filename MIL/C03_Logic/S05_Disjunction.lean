@@ -58,19 +58,74 @@ example : x < |y| → x < y ∨ x < -y := by
 namespace MyAbs
 
 theorem le_abs_self (x : ℝ) : x ≤ |x| := by
-  sorry
+  match le_or_gt 0 x with
+  | Or.inl h =>
+    rw [abs_of_nonneg h]
+  | Or.inr h =>
+    rw [abs_of_neg h]
+    linarith
 
 theorem neg_le_abs_self (x : ℝ) : -x ≤ |x| := by
-  sorry
+  cases le_or_gt 0 x
+  case inl h =>
+    rw [abs_of_nonneg h]
+    linarith
+  case inr h =>
+    rw [abs_of_neg h]
 
 theorem abs_add (x y : ℝ) : |x + y| ≤ |x| + |y| := by
-  sorry
+  cases le_or_gt 0 (x + y)
+  case inl h =>
+    rw [abs_of_nonneg h]
+    exact add_le_add (le_abs_self x) (le_abs_self y)
+  case inr h =>
+    rw [abs_of_neg h]
+    rw [neg_add]
+    exact add_le_add (neg_le_abs_self x) (neg_le_abs_self y)
 
 theorem lt_abs : x < |y| ↔ x < y ∨ x < -y := by
-  sorry
+  constructor
+  · intro h
+    cases le_or_gt 0 y
+    case mp.inl h' =>
+      rw [abs_of_nonneg h'] at h
+      left
+      exact h
+    case mp.inr h' =>
+      rw [abs_of_neg h'] at h
+      right
+      exact h
+  intro h
+  cases h
+  case mpr.inl h' =>
+    have : y ≤ |y| := le_abs_self y
+    linarith
+  case mpr.inr h' =>
+    have : -y ≤ |y| := neg_le_abs_self y
+    linarith
 
 theorem abs_lt : |x| < y ↔ -y < x ∧ x < y := by
-  sorry
+  constructor
+  . intro h
+    cases le_or_gt 0 x
+    case mp.inl h' =>
+      rw [abs_of_nonneg h'] at h
+      constructor
+      . linarith
+      exact h
+    case mp.inr h' =>
+      rw [abs_of_neg h'] at h
+      constructor
+      · linarith
+      linarith
+  intro ⟨h₁, h₂⟩
+  cases le_or_gt 0 x
+  case mpr.inl h' =>
+    rw [abs_of_nonneg h']
+    exact h₂
+  case mpr.inr h' =>
+    rw [abs_of_neg h']
+    linarith
 
 end MyAbs
 
