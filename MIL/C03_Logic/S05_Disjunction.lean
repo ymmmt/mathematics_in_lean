@@ -106,12 +106,12 @@ theorem lt_abs : x < |y| ↔ x < y ∨ x < -y := by
 
 theorem abs_lt : |x| < y ↔ -y < x ∧ x < y := by
   constructor
-  . intro h
+  · intro h
     cases le_or_gt 0 x
     case mp.inl h' =>
       rw [abs_of_nonneg h'] at h
       constructor
-      . linarith
+      · linarith
       exact h
     case mp.inr h' =>
       rw [abs_of_neg h'] at h
@@ -145,24 +145,56 @@ example {m n k : ℕ} (h : m ∣ n ∨ m ∣ k) : m ∣ n * k := by
   · rw [mul_comm, mul_assoc]
     apply dvd_mul_right
 
+#check sq_nonneg
+#check pow_two_nonneg
+
 example {z : ℝ} (h : ∃ x y, z = x ^ 2 + y ^ 2 ∨ z = x ^ 2 + y ^ 2 + 1) : z ≥ 0 := by
-  sorry
+  rcases h with ⟨x, y, rfl | rfl⟩ <;> linarith [sq_nonneg x, sq_nonneg y]
 
 example {x : ℝ} (h : x ^ 2 = 1) : x = 1 ∨ x = -1 := by
-  sorry
+  have h' : (x + 1) * (x - 1) = 0 := by linarith
+  rcases eq_zero_or_eq_zero_of_mul_eq_zero h' with h₁ | h₂
+  · right
+    linarith
+  left
+  linarith
 
 example {x y : ℝ} (h : x ^ 2 = y ^ 2) : x = y ∨ x = -y := by
-  sorry
+  have h' : (x + y) * (x - y) = 0 := by linarith
+  rcases eq_zero_or_eq_zero_of_mul_eq_zero h' with h₁ | h₂
+  · right; linarith
+  left; linarith
 
 section
 variable {R : Type*} [CommRing R] [IsDomain R]
 variable (x y : R)
 
+#check eq_neg_of_add_eq_zero_left
+#check eq_of_sub_eq_zero
+
 example (h : x ^ 2 = 1) : x = 1 ∨ x = -1 := by
-  sorry
+  have h' : (x + 1) * (x - 1) = 0 :=
+    calc
+      (x + 1) * (x - 1) = x ^ 2 - 1 := by ring
+      _ = 1 - 1 := by rw [h]
+      _ = 0 := by ring
+  rcases eq_zero_or_eq_zero_of_mul_eq_zero h' with h₁ | h₂
+  · right
+    exact eq_neg_of_add_eq_zero_left h₁
+  left
+  exact eq_of_sub_eq_zero h₂
 
 example (h : x ^ 2 = y ^ 2) : x = y ∨ x = -y := by
-  sorry
+  have h' : (x + y) * (x - y) = 0 :=
+    calc
+      (x + y) * (x - y) = x ^ 2 - y ^ 2 := by ring
+      _ = y ^ 2 - y ^ 2 := by rw [h]
+      _ = 0 := by ring
+  rcases eq_zero_or_eq_zero_of_mul_eq_zero h' with h₁ | h₂
+  · right
+    exact eq_neg_of_add_eq_zero_left h₁
+  left
+  exact eq_of_sub_eq_zero h₂
 
 end
 
@@ -179,5 +211,11 @@ example (P : Prop) : ¬¬P → P := by
   contradiction
 
 example (P Q : Prop) : P → Q ↔ ¬P ∨ Q := by
-  sorry
-
+  constructor
+  · intro h
+    by_cases h' : P
+    · right; exact h h'
+    left ; exact h'
+  rintro (hnp | hq) hp
+  · contradiction
+  exact hq
