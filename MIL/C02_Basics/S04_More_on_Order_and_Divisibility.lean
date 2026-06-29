@@ -39,17 +39,60 @@ example : min a b = min b a := by
     apply min_le_left
 
 example : max a b = max b a := by
-  sorry
+  apply le_antisymm
+  repeat
+    apply max_le
+    apply le_max_right
+    apply le_max_left
+
 example : min (min a b) c = min a (min b c) := by
-  sorry
+  apply le_antisymm
+  · apply le_min
+    · apply le_trans (b := min a b)
+      apply min_le_left
+      apply min_le_left
+    · apply min_le_min
+      apply min_le_right
+      apply le_refl
+  · apply le_min
+    · apply min_le_min
+      apply le_refl
+      apply min_le_left
+    · apply le_trans (b := min b c)
+      apply min_le_right
+      apply min_le_right
+
 theorem aux : min a b + c ≤ min (a + c) (b + c) := by
-  sorry
+  apply le_min
+  · apply add_le_add_right
+    apply min_le_left
+  · apply add_le_add_right
+    apply min_le_right
+
 example : min a b + c = min (a + c) (b + c) := by
-  sorry
+  apply le_antisymm
+  · apply aux
+  · rw [add_comm (min a b) c]
+    apply le_add_of_sub_left_le
+    apply le_min
+    · apply le_trans (b := (a + c) - c)
+      · apply sub_le_sub_right
+        apply min_le_left
+      · group
+        apply le_refl
+    · apply le_trans (b := (b + c) - c)
+      · apply sub_le_sub_right
+        apply min_le_right
+      · group
+        apply le_refl
+
 #check (abs_add : ∀ a b : ℝ, |a + b| ≤ |a| + |b|)
 
-example : |a| - |b| ≤ |a - b| :=
-  sorry
+example : |a| - |b| ≤ |a - b| := by
+  nth_rw 1 [← sub_add_cancel a b]
+  have : |(a - b) + b| ≤ |a - b| + |b| := abs_add (a - b) b
+  linarith
+
 end
 
 section
@@ -66,7 +109,14 @@ example : x ∣ x ^ 2 := by
   apply dvd_mul_left
 
 example (h : x ∣ w) : x ∣ y * (x * z) + x ^ 2 + w ^ 2 := by
-  sorry
+  apply dvd_add
+  · apply dvd_add
+    · rw [mul_comm, mul_assoc]
+      apply dvd_mul_right
+    · apply dvd_mul_left
+  · apply dvd_trans h
+    apply dvd_mul_left
+
 end
 
 section
@@ -78,7 +128,12 @@ variable (m n : ℕ)
 #check (Nat.lcm_zero_left n : Nat.lcm 0 n = 0)
 
 example : Nat.gcd m n = Nat.gcd n m := by
-  sorry
+  apply _root_.dvd_antisymm
+  repeat
+    apply dvd_gcd
+    apply gcd_dvd_right
+    apply gcd_dvd_left
+
 end
 
 

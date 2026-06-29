@@ -36,22 +36,74 @@ variable (x y z : α)
 #check (sup_le : x ≤ z → y ≤ z → x ⊔ y ≤ z)
 
 example : x ⊓ y = y ⊓ x := by
-  sorry
+  apply le_antisymm
+  repeat
+    apply le_inf
+    apply inf_le_right
+    apply inf_le_left
 
 example : x ⊓ y ⊓ z = x ⊓ (y ⊓ z) := by
-  sorry
+  apply le_antisymm
+  · apply le_inf
+    · trans x ⊓ y
+      · apply inf_le_left
+      · apply inf_le_left
+    · apply le_inf
+      · trans x ⊓ y
+        apply inf_le_left
+        apply inf_le_right
+      · apply inf_le_right
+  · apply le_inf
+    · apply le_inf
+      · apply inf_le_left
+      · trans y ⊓ z
+        · apply inf_le_right
+        · apply inf_le_left
+    · trans y ⊓ z
+      · apply inf_le_right
+      · apply inf_le_right
 
 example : x ⊔ y = y ⊔ x := by
-  sorry
+  apply le_antisymm
+  repeat
+    apply sup_le
+    apply le_sup_right
+    apply le_sup_left
 
 example : x ⊔ y ⊔ z = x ⊔ (y ⊔ z) := by
-  sorry
+  apply le_antisymm
+  · apply sup_le
+    · apply sup_le
+      · apply le_sup_left
+      · trans y ⊔ z
+        · apply le_sup_left
+        · apply le_sup_right
+    · trans y ⊔ z
+      · apply le_sup_right
+      · apply le_sup_right
+  · apply sup_le
+    · trans x ⊔ y
+      · apply le_sup_left
+      · apply le_sup_left
+    · apply sup_le
+      · trans x ⊔ y
+        · apply le_sup_right
+        · apply le_sup_left
+      · apply le_sup_right
 
 theorem absorb1 : x ⊓ (x ⊔ y) = x := by
-  sorry
+  apply le_antisymm
+  · apply inf_le_left
+  · apply le_inf
+    · apply le_refl
+    · apply le_sup_left
 
 theorem absorb2 : x ⊔ x ⊓ y = x := by
-  sorry
+  apply le_antisymm
+  · apply sup_le
+    · apply le_refl
+    · apply inf_le_left
+  · apply le_sup_left
 
 end
 
@@ -70,10 +122,55 @@ variable {α : Type*} [Lattice α]
 variable (a b c : α)
 
 example (h : ∀ x y z : α, x ⊓ (y ⊔ z) = x ⊓ y ⊔ x ⊓ z) : a ⊔ b ⊓ c = (a ⊔ b) ⊓ (a ⊔ c) := by
-  sorry
+  apply le_antisymm
+  · apply le_inf
+    · apply sup_le
+      · apply le_sup_left
+      · trans b
+        · apply inf_le_left
+        · apply le_sup_right
+    · apply sup_le
+      · apply le_sup_left
+      · trans c
+        · apply inf_le_right
+        · apply le_sup_right
+  · rw [h]
+    apply sup_le
+    · trans a
+      · apply inf_le_right
+      · apply le_sup_left
+    · rw [inf_comm]
+      rw [h]
+      apply sup_le
+      · trans a
+        · apply inf_le_right
+        · apply le_sup_left
+      · rw [inf_comm]
+        apply le_sup_right
 
 example (h : ∀ x y z : α, x ⊔ y ⊓ z = (x ⊔ y) ⊓ (x ⊔ z)) : a ⊓ (b ⊔ c) = a ⊓ b ⊔ a ⊓ c := by
-  sorry
+  apply le_antisymm
+  · rw [h]
+    apply le_inf
+    · rw [sup_comm (a ⊓ b) a]
+      rw [absorb2]
+      apply inf_le_left
+    · rw [sup_comm (a ⊓ b) c]
+      rw [h]
+      rw [sup_comm b c]
+      apply inf_le_inf_right
+      apply le_sup_right
+  · apply le_inf
+    · apply sup_le
+      · apply inf_le_left
+      · apply inf_le_left
+    · apply sup_le
+      · trans b
+        · apply inf_le_right
+        · apply le_sup_left
+      · trans c
+        · apply inf_le_right
+        · apply le_sup_right
 
 end
 
@@ -86,14 +183,23 @@ variable (a b c : R)
 
 #check (mul_nonneg : 0 ≤ a → 0 ≤ b → 0 ≤ a * b)
 
-example (h : a ≤ b) : 0 ≤ b - a := by
-  sorry
+theorem sub_nonneg_of_le' (h : a ≤ b) : 0 ≤ b - a := by
+  rw [← add_neg_cancel a]
+  rw [sub_eq_add_neg]
+  apply add_le_add_right
+  exact h
 
-example (h: 0 ≤ b - a) : a ≤ b := by
-  sorry
+theorem le_of_nonneg_sub (h: 0 ≤ b - a) : a ≤ b :=
+  calc
+    a = a + 0 := by rw [add_zero]
+    _ ≤ a + (b - a) := add_le_add_left h a
+    _ = b := by noncomm_ring
 
 example (h : a ≤ b) (h' : 0 ≤ c) : a * c ≤ b * c := by
-  sorry
+  have h₁ : 0 ≤ b - a := sub_nonneg_of_le' a b h
+  apply le_of_nonneg_sub
+  rw [← sub_mul]
+  exact mul_nonneg h₁ h'
 
 end
 
@@ -106,7 +212,13 @@ variable (x y z : X)
 #check (dist_triangle x y z : dist x z ≤ dist x y + dist y z)
 
 example (x y : X) : 0 ≤ dist x y := by
-  sorry
+  have : 0 ≤ 2 * dist x y :=
+    calc
+      0 = dist x x := (dist_self x).symm
+      _ ≤ dist x y + dist y x := by apply dist_triangle
+      _ = dist x y + dist x y := by rw [dist_comm]
+      _ = 2 * dist x y := by ring
+  linarith
 
 end
 
