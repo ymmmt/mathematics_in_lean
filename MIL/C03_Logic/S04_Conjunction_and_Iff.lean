@@ -63,8 +63,12 @@ example {x y : ℝ} (h : x ≤ y ∧ x ≠ y) : ¬y ≤ x := by
 example {x y : ℝ} (h : x ≤ y ∧ x ≠ y) : ¬y ≤ x :=
   fun h' ↦ h.right (le_antisymm h.left h')
 
-example {m n : ℕ} (h : m ∣ n ∧ m ≠ n) : m ∣ n ∧ ¬n ∣ m :=
-  sorry
+example {m n : ℕ} (h : m ∣ n ∧ m ≠ n) : m ∣ n ∧ ¬n ∣ m := by
+  constructor
+  · exact h.left
+  rcases h with ⟨hl, hr⟩
+  contrapose! hr
+  exact dvd_antisymm hl hr
 
 example : ∃ x : ℝ, 2 < x ∧ x < 4 :=
   ⟨5 / 2, by norm_num, by norm_num⟩
@@ -74,7 +78,7 @@ example (x y : ℝ) : (∃ z : ℝ, x < z ∧ z < y) → x < y := by
   exact lt_trans xltz zlty
 
 example (x y : ℝ) : (∃ z : ℝ, x < z ∧ z < y) → x < y :=
-  fun ⟨z, xltz, zlty⟩ ↦ lt_trans xltz zlty
+  fun ⟨_z, xltz, zlty⟩ ↦ lt_trans xltz zlty
 
 example : ∃ x : ℝ, 2 < x ∧ x < 4 := by
   use 5 / 2
@@ -101,15 +105,37 @@ example {x y : ℝ} (h : x ≤ y) : ¬y ≤ x ↔ x ≠ y := by
 example {x y : ℝ} (h : x ≤ y) : ¬y ≤ x ↔ x ≠ y :=
   ⟨fun h₀ h₁ ↦ h₀ (by rw [h₁]), fun h₀ h₁ ↦ h₀ (le_antisymm h h₁)⟩
 
-example {x y : ℝ} : x ≤ y ∧ ¬y ≤ x ↔ x ≤ y ∧ x ≠ y :=
-  sorry
+example {x y : ℝ} : x ≤ y ∧ ¬y ≤ x ↔ x ≤ y ∧ x ≠ y := by
+  constructor
+  · intro h
+    constructor
+    · exact h.left
+    rcases h with ⟨h₁, h₂⟩
+    contrapose! h₂
+    rw [h₂]
+  intro h
+  constructor
+  · exact h.left
+  rcases h with ⟨h₁, h₂⟩
+  contrapose! h₂
+  exact le_antisymm h₁ h₂
 
 theorem aux {x y : ℝ} (h : x ^ 2 + y ^ 2 = 0) : x = 0 :=
-  have h' : x ^ 2 = 0 := by sorry
-  pow_eq_zero h'
+  have : x ^ 2 = 0 ∧ y ^ 2 = 0 := by
+    rw [← add_eq_zero_iff_of_nonneg (pow_two_nonneg x) (pow_two_nonneg y)]
+    exact h
+  pow_eq_zero this.left
 
-example (x y : ℝ) : x ^ 2 + y ^ 2 = 0 ↔ x = 0 ∧ y = 0 :=
-  sorry
+example (x y : ℝ) : x ^ 2 + y ^ 2 = 0 ↔ x = 0 ∧ y = 0 := by
+  constructor
+  · intro heq
+    constructor
+    · exact aux heq
+    rw [add_comm] at heq
+    exact aux heq
+  intro h
+  rw [h.left, h.right]
+  ring
 
 section
 
@@ -130,7 +156,10 @@ theorem not_monotone_iff {f : ℝ → ℝ} : ¬Monotone f ↔ ∃ x y, x ≤ y �
   rfl
 
 example : ¬Monotone fun x : ℝ ↦ -x := by
-  sorry
+  rw [Monotone]
+  push_neg
+  use 1, 2
+  norm_num
 
 section
 variable {α : Type*} [PartialOrder α]
@@ -138,7 +167,19 @@ variable (a b : α)
 
 example : a < b ↔ a ≤ b ∧ a ≠ b := by
   rw [lt_iff_le_not_ge]
-  sorry
+  constructor
+  · intro h
+    constructor
+    · exact h.left
+    rcases h with ⟨h₁, h₂⟩
+    contrapose! h₂
+    rw [h₂]
+  intro h
+  constructor
+  · exact h.left
+  rcases h with ⟨h₁, h₂⟩
+  contrapose! h₂
+  exact le_antisymm h₁ h₂
 
 end
 
@@ -148,10 +189,16 @@ variable (a b c : α)
 
 example : ¬a < a := by
   rw [lt_iff_le_not_ge]
-  sorry
+  push_neg
+  exact id
 
 example : a < b → b < c → a < c := by
   simp only [lt_iff_le_not_ge]
-  sorry
+  intro h₁ h₂
+  constructor
+  · exact le_trans h₁.left h₂.left
+  intro hca
+  have hcb : c ≤ b := le_trans hca h₁.left
+  exact h₂.right hcb
 
 end
