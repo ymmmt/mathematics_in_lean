@@ -24,7 +24,7 @@ example (h : s ⊆ t) : s ∩ u ⊆ t ∩ u := by
   exact ⟨h xsu.1, xsu.2⟩
 
 example (h : s ⊆ t) : s ∩ u ⊆ t ∩ u :=
-  fun x ⟨xs, xu⟩ ↦ ⟨h xs, xu⟩
+  fun _ ⟨xs, xu⟩ ↦ ⟨h xs, xu⟩
 
 example : s ∩ (t ∪ u) ⊆ s ∩ t ∪ s ∩ u := by
   intro x hx
@@ -44,7 +44,10 @@ example : s ∩ (t ∪ u) ⊆ s ∩ t ∪ s ∩ u := by
   · right; exact ⟨xs, xu⟩
 
 example : s ∩ t ∪ s ∩ u ⊆ s ∩ (t ∪ u) := by
-  sorry
+  rintro x (⟨xs, xt⟩ | ⟨xs, xu⟩)
+  · exact ⟨xs, Or.inl xt⟩
+  · exact ⟨xs, Or.inr xu⟩
+
 example : (s \ t) \ u ⊆ s \ (t ∪ u) := by
   intro x xstu
   have xs : x ∈ s := xstu.1.1
@@ -64,7 +67,14 @@ example : (s \ t) \ u ⊆ s \ (t ∪ u) := by
   rintro (xt | xu) <;> contradiction
 
 example : s \ (t ∪ u) ⊆ (s \ t) \ u := by
-  sorry
+  rintro x ⟨xs, xntu⟩
+  constructor
+  · use xs
+    intro xt
+    exact xntu (Or.inl xt)
+  · intro xu
+    exact xntu (Or.inr xu)
+
 example : s ∩ t = t ∩ s := by
   ext x
   simp only [mem_inter_iff]
@@ -73,7 +83,7 @@ example : s ∩ t = t ∩ s := by
   · rintro ⟨xt, xs⟩; exact ⟨xs, xt⟩
 
 example : s ∩ t = t ∩ s :=
-  Set.ext fun x ↦ ⟨fun ⟨xs, xt⟩ ↦ ⟨xt, xs⟩, fun ⟨xt, xs⟩ ↦ ⟨xs, xt⟩⟩
+  Set.ext fun _x ↦ ⟨fun ⟨xs, xt⟩ ↦ ⟨xt, xs⟩, fun ⟨xt, xs⟩ ↦ ⟨xs, xt⟩⟩
 
 example : s ∩ t = t ∩ s := by ext x; simp [and_comm]
 
@@ -83,18 +93,62 @@ example : s ∩ t = t ∩ s := by
   · rintro x ⟨xt, xs⟩; exact ⟨xs, xt⟩
 
 example : s ∩ t = t ∩ s :=
-    Subset.antisymm sorry sorry
+    Subset.antisymm (λ _x ⟨xs, xt⟩ => ⟨xt, xs⟩) (λ _x ⟨xt, xs⟩ => ⟨xs, xt⟩)
+
 example : s ∩ (s ∪ t) = s := by
-  sorry
+  ext x
+  constructor
+  · rintro ⟨xs, xst⟩
+    exact xs
+  · intro xs
+    exact ⟨xs, (Or.inl xs : x ∈ s ∪ t)⟩
 
 example : s ∪ s ∩ t = s := by
-  sorry
+  ext x
+  constructor
+  · rintro (xs | xst)
+    · exact xs
+    · exact xst.left
+  · intro xs
+    exact Or.inl xs
 
 example : s \ t ∪ t = s ∪ t := by
-  sorry
+  ext x
+  constructor
+  · rintro (xst | xt)
+    · have : x ∈ s := xst.1
+      exact Or.inl this
+    · exact Or.inr xt
+  · rintro (xs | xt)
+    · by_cases xt : x ∈ t
+      · right; exact xt
+      · left; exact ⟨xs, xt⟩
+    · exact Or.inr xt
 
 example : s \ t ∪ t \ s = (s ∪ t) \ (s ∩ t) := by
-  sorry
+  ext x
+  constructor
+  · rintro (xst | xts)
+    · constructor
+      · have : x ∈ s := xst.1
+        exact Or.inl this
+      · rintro ⟨xs, xt⟩
+        exact absurd xt xst.2
+    · constructor
+      · exact Or.inr xts.1
+      · rintro ⟨xs, xt⟩
+        exact absurd xs xts.2
+  · rintro ⟨xs | xt, xnst⟩
+    · left
+      constructor
+      · exact xs
+      · intro xt
+        exact xnst ⟨xs, xt⟩
+    · right
+      constructor
+      · exact xt
+      · intro xs
+        exact xnst ⟨xs, xt⟩
 
 def evens : Set ℕ :=
   { n | Even n }
@@ -114,8 +168,14 @@ example (x : ℕ) (h : x ∈ (∅ : Set ℕ)) : False :=
 example (x : ℕ) : x ∈ (univ : Set ℕ) :=
   trivial
 
+#check Nat.Prime.eq_two_or_odd'
 example : { n | Nat.Prime n } ∩ { n | n > 2 } ⊆ { n | ¬Even n } := by
-  sorry
+  rintro n ⟨p, gt2⟩
+  rw [mem_setOf] at *
+  intro even
+  rcases Nat.Prime.eq_two_or_odd' p with eq2 | odd
+  · linarith
+  · exact absurd odd (Nat.not_odd_iff_even.mpr even)
 
 #print Prime
 
@@ -151,10 +211,17 @@ section
 variable (ssubt : s ⊆ t)
 
 example (h₀ : ∀ x ∈ t, ¬Even x) (h₁ : ∀ x ∈ t, Prime x) : ∀ x ∈ s, ¬Even x ∧ Prime x := by
-  sorry
+  intro x xs
+  have xt : x ∈ t := ssubt xs
+  constructor
+  · exact h₀ x xt
+  · exact h₁ x xt
 
 example (h : ∃ x ∈ s, ¬Even x ∧ Prime x) : ∃ x ∈ t, Prime x := by
-  sorry
+  rcases h with ⟨x, xs, h'⟩
+  have xt : x ∈ t := ssubt xs
+  use x
+  exact ⟨xt, h'.right⟩
 
 end
 
@@ -191,9 +258,25 @@ example : (⋂ i, A i ∩ B i) = (⋂ i, A i) ∩ ⋂ i, B i := by
   · exact h1 i
   exact h2 i
 
-
 example : (s ∪ ⋂ i, A i) = ⋂ i, A i ∪ s := by
-  sorry
+  ext x
+  simp only [mem_union, mem_iInter]
+  constructor
+  · rintro (xs | h)
+    · intro i
+      right
+      exact xs
+    · intro i
+      left
+      exact h i
+  · intro h
+    by_cases xs : x ∈ s
+    · left; exact xs
+    · right
+      intro i
+      rcases h i with xAi | xns
+      · exact xAi
+      · contradiction
 
 def primes : Set ℕ :=
   { x | Nat.Prime x }
