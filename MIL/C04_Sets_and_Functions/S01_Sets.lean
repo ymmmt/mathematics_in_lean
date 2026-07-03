@@ -297,7 +297,12 @@ example : (⋂ p ∈ primes, { x | ¬p ∣ x }) ⊆ { x | x = 1 } := by
   apply Nat.exists_prime_and_dvd
 
 example : (⋃ p ∈ primes, { x | x ≤ p }) = univ := by
-  sorry
+  apply eq_univ_of_forall
+  intro n
+  simp
+  rcases  Nat.exists_infinite_primes n with ⟨p, ge, prim⟩
+  use p
+  exact ⟨prim, ge⟩
 
 end
 
