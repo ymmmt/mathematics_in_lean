@@ -45,18 +45,28 @@ theorem exists_prime_factor {n : Nat} (h : 2 ≤ n) : ∃ p : Nat, p.Prime ∧ p
 theorem primes_infinite : ∀ n, ∃ p > n, Nat.Prime p := by
   intro n
   have : 2 ≤ Nat.factorial n + 1 := by
-    sorry
+    show 1 + 1 ≤ Nat.factorial n + 1
+    apply add_le_add_right
+    apply Nat.factorial_pos
   rcases exists_prime_factor this with ⟨p, pp, pdvd⟩
   refine ⟨p, ?_, pp⟩
   show p > n
   by_contra ple
   push_neg at ple
   have : p ∣ Nat.factorial n := by
-    sorry
+    apply Nat.dvd_factorial
+    · apply Nat.Prime.pos pp
+    exact ple
   have : p ∣ 1 := by
-    sorry
+    rw [← Nat.add_sub_cancel_left (Nat.factorial n) 1]
+    apply Nat.dvd_sub
+    · exact pdvd
+    exact this
   show False
-  sorry
+  have : p ≤ 1 := Nat.le_of_dvd (by linarith : 0 < 1) this
+  have : p ≥ 2 := Nat.Prime.two_le pp
+  linarith
+
 open Finset
 
 section
@@ -89,9 +99,14 @@ section
 variable {α : Type*} [DecidableEq α] (r s t : Finset α)
 
 example : (r ∪ s) ∩ (r ∪ t) = r ∪ s ∩ t := by
-  sorry
+  ext x
+  simp
+  tauto
+
 example : (r \ s) \ t = r \ (s ∪ t) := by
-  sorry
+  ext x
+  simp
+  tauto
 
 end
 
@@ -101,7 +116,14 @@ example (s : Finset ℕ) (n : ℕ) (h : n ∈ s) : n ∣ ∏ i ∈ s, i :=
 theorem _root_.Nat.Prime.eq_of_dvd_of_prime {p q : ℕ}
       (prime_p : Nat.Prime p) (prime_q : Nat.Prime q) (h : p ∣ q) :
     p = q := by
-  sorry
+  cases Nat.Prime.eq_one_or_self_of_dvd prime_q p h
+  case inl =>
+    exfalso
+    have : p ≥ 2 := prime_p.two_le
+    linarith
+  case inr h => exact h
+
+#check Finset.induction_on
 
 theorem mem_of_dvd_prod_primes {s : Finset ℕ} {p : ℕ} (prime_p : p.Prime) :
     (∀ n ∈ s, Nat.Prime n) → (p ∣ ∏ n ∈ s, n) → p ∈ s := by
@@ -111,7 +133,15 @@ theorem mem_of_dvd_prod_primes {s : Finset ℕ} {p : ℕ} (prime_p : p.Prime) :
     linarith [prime_p.two_le]
   simp [Finset.prod_insert ans, prime_p.dvd_mul] at h₀ h₁
   rw [mem_insert]
-  sorry
+  rcases h₁ with h₁l | h₂r
+  · left
+    rcases (Nat.dvd_prime h₀.left).mp h₁l with m1 | mp
+    · have : p ≥ 2 := prime_p.two_le
+      linarith
+    · exact mp
+  · right
+    exact ih h₀.right h₂r
+
 example (s : Finset ℕ) (x : ℕ) : x ∈ s.filter Nat.Prime ↔ x ∈ s ∧ x.Prime :=
   mem_filter
 
@@ -122,18 +152,28 @@ theorem primes_infinite' : ∀ s : Finset Nat, ∃ p, Nat.Prime p ∧ p ∉ s :=
   set s' := s.filter Nat.Prime with s'_def
   have mem_s' : ∀ {n : ℕ}, n ∈ s' ↔ n.Prime := by
     intro n
-    simp [s'_def]
+    simp only [s'_def]
+    simp
     apply h
   have : 2 ≤ (∏ i ∈ s', i) + 1 := by
-    sorry
+    show 1 + 1 ≤ (∏ i ∈ s', i) + 1
+    apply add_le_add_right
+    rw [Nat.succ_le]
+    apply Finset.prod_pos
+    · intro i is'
+      have i.Prime := mem_s'.mp is'
+      exact i.Prime.pos
   rcases exists_prime_factor this with ⟨p, pp, pdvd⟩
   have : p ∣ ∏ i ∈ s', i := by
-    sorry
+    have : p ∈ s' := mem_s'.mpr pp
+    apply Finset.dvd_prod_of_mem _ this
   have : p ∣ 1 := by
     convert Nat.dvd_sub pdvd this
     simp
   show False
-  sorry
+  have : p ≤ 1 := Nat.le_of_dvd (by linarith : 0 < 1) this
+  linarith [pp.two_le]
+
 theorem bounded_of_ex_finset (Q : ℕ → Prop) :
     (∃ s : Finset ℕ, ∀ k, Q k → k ∈ s) → ∃ n, ∀ k, Q k → k < n := by
   rintro ⟨s, hs⟩
