@@ -188,7 +188,8 @@ theorem ex_finset_of_bounded (Q : ℕ → Prop) [DecidablePred Q] :
   rintro ⟨n, hn⟩
   use (range (n + 1)).filter Q
   intro k
-  simp [Nat.lt_succ_iff]
+  simp
+  simp only [Nat.lt_succ_iff]
   exact hn k
 
 example : 27 % 4 = 3 := by norm_num
@@ -211,7 +212,12 @@ theorem two_le_of_mod_4_eq_3 {n : ℕ} (h : n % 4 = 3) : 2 ≤ n := by
       norm_num at h
 
 theorem aux {m n : ℕ} (h₀ : m ∣ n) (h₁ : 2 ≤ m) (h₂ : m < n) : n / m ∣ n ∧ n / m < n := by
-  sorry
+  constructor
+  · have : m > 0 := by linarith
+    apply Nat.div_dvd_iff_dvd_mul h₀ this |>.mpr
+    apply dvd_mul_left
+  · exact Nat.div_lt_self (by linarith : 0 < n) (by linarith : 1 < m)
+
 theorem exists_prime_factor_mod_4_eq_3 {n : Nat} (h : n % 4 = 3) :
     ∃ p : Nat, p.Prime ∧ p ∣ n ∧ p % 4 = 3 := by
   by_cases np : n.Prime
@@ -229,9 +235,17 @@ theorem exists_prime_factor_mod_4_eq_3 {n : Nat} (h : n % 4 = 3) :
   have : m % 4 = 3 ∨ n / m % 4 = 3 := by
     apply mod_4_eq_3_or_mod_4_eq_3
     rw [neq, h]
+  have auxh : n / m ∣ n ∧ n / m < n := aux mdvdn mge2 mltn
   rcases this with h1 | h1
-  . sorry
-  . sorry
+  · by_cases mp : m.Prime
+    · exact ⟨m, mp, mdvdn, h1⟩
+    · rcases ih m mltn h1 mp with ⟨p, pp, pdvdm, p1⟩
+      exact ⟨p, pp, dvd_trans pdvdm mdvdn, p1⟩
+  · by_cases nmp : (n / m).Prime
+    · exact ⟨n / m, nmp, auxh.left, h1⟩
+    · rcases ih (n / m) auxh.right h1 nmp with ⟨p, pp, pdvdnm, p1⟩
+      exact ⟨p, pp, dvd_trans pdvdnm auxh.left, p1⟩
+
 example (m n : ℕ) (s : Finset ℕ) (h : m ∈ erase s n) : m ≠ n ∧ m ∈ s := by
   rwa [mem_erase] at h
 
@@ -251,17 +265,42 @@ theorem primes_mod_4_eq_3_infinite : ∀ n, ∃ p > n, Nat.Prime p ∧ p % 4 = 3
     exact ⟨p, pltn, pp, p4⟩
   rcases this with ⟨s, hs⟩
   have h₁ : ((4 * ∏ i ∈ erase s 3, i) + 3) % 4 = 3 := by
-    sorry
+    rw  [Nat.add_mod]
+    simp
   rcases exists_prime_factor_mod_4_eq_3 h₁ with ⟨p, pp, pdvd, p4eq⟩
   have ps : p ∈ s := by
-    sorry
+    rw [← hs p]
+    exact ⟨pp, p4eq⟩
+  have prime_of_mem_s3 : ∀ p ∈ s.erase 3, p.Prime := by
+    intro p ps3
+    have ps : p ∈ s := mem_of_mem_erase ps3
+    exact (hs p).mpr ps |>.left
   have pne3 : p ≠ 3 := by
-    sorry
+    intro peq3
+    rw [peq3] at pdvd
+    have : 3 ∣∏ i ∈ s.erase 3, i := by
+      have : 3 ∣ 4 * ∏ i ∈ s.erase 3, i := Nat.dvd_add_self_right.mp pdvd
+      rw [Nat.prime_three.dvd_mul] at this
+      rcases this with (hl | hr)
+      · have hl' : 3 ∣ 2 ^ 2 := hl
+        have : 3 ∣ 2 := Nat.prime_three.dvd_of_dvd_pow hl'
+        have : 3 ≤ 2 := Nat.le_of_dvd (by linarith) this
+        linarith
+      · exact hr
+    have : 3 ∈ s.erase 3 := mem_of_dvd_prod_primes Nat.prime_three prime_of_mem_s3 this
+    have : 3 ∉ s.erase 3 := Finset.notMem_erase 3 s
+    contradiction
+  have ps3 : p ∈ s.erase 3 := by
+    apply mem_erase.mpr
+    exact ⟨pne3, ps⟩
   have : p ∣ 4 * ∏ i ∈ erase s 3, i := by
-    sorry
-  have : p ∣ 3 := by
-    sorry
+    apply dvd_mul_of_dvd_right
+    apply dvd_prod_of_mem id ps3
+  have : p ∣ 3 := (Nat.dvd_add_right this).mp pdvd
+  have : p ≤ 3 := Nat.le_of_dvd (by linarith) this
+  have : p ≥ 2 := two_le_of_mod_4_eq_3 p4eq
   have : p = 3 := by
-    sorry
+    interval_cases p
+    · linarith
+    · rfl
   contradiction
-
