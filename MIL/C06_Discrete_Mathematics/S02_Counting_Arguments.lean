@@ -1,3 +1,4 @@
+
 import Mathlib.Data.Fintype.BigOperators
 import Mathlib.Combinatorics.Pigeonhole
 import Mathlib.Tactic
@@ -90,18 +91,51 @@ example (n : ℕ) : #(triangle n) = (n + 1) * n / 2 := by
   apply Nat.eq_div_of_mul_eq_right (by norm_num)
   let turn (p : ℕ × ℕ) : ℕ × ℕ := (n - 1 - p.1, n - p.2)
   calc 2 * #(triangle n)
-      = #(triangle n) + #(triangle n) := by
-          sorry
+    _ = #(triangle n) + #(triangle n) := by
+      apply two_mul
     _ = #(triangle n) + #(triangle n |>.image turn) := by
-          sorry
+      rw [Finset.card_image_of_injOn]
+      intro ⟨x1, x2⟩ xin ⟨y1, y2⟩ yin eq
+      dsimp [turn] at eq
+      simp_all [triangle]; omega
     _ = #(range n ×ˢ range (n + 1)) := by
-          sorry
+      rw [←Finset.card_union_of_disjoint]; swap
+      · rw [disjoint_iff_ne]
+        intro ⟨x1, x2⟩ xin ⟨y1, y2⟩ yin xeqy
+        rcases mem_image.mp yin with ⟨⟨z1, z2⟩, turnz⟩
+        simp_all [turn, triangle]
+        omega
+      · apply congr_arg
+        ext x
+        rcases x with ⟨x1, x2⟩
+        simp [turn, triangle]
+        constructor
+        · rintro (h | h) <;> omega
+        · rintro ⟨h1, h2⟩
+          rcases lt_or_ge x1 x2 with (xlt | xge)
+          · left; omega
+          · right
+            use n - 1 - x1, n - x2
+            omega
     _ = (n + 1) * n := by
-          sorry
+      simp [mul_comm]
 
 def triangle' (n : ℕ) : Finset (ℕ × ℕ) := {p ∈ range n ×ˢ range n | p.1 ≤ p.2}
 
-example (n : ℕ) : #(triangle' n) = #(triangle n) := by sorry
+example (n : ℕ) : #(triangle' n) = #(triangle n) := by
+  let f (p : ℕ × ℕ) : ℕ × ℕ := (p.1, p.2 + 1)
+  have : triangle n = (triangle' n |>.image f) := by
+    ext x
+    rcases x with ⟨x1, x2⟩
+    simp [triangle, triangle', f]
+    constructor
+    · rintro h
+      use x1, x2 - 1
+      omega
+    · omega
+  rw [this, card_image_of_injOn]
+  rintro ⟨p1, p2⟩ hp ⟨q1, q2⟩ hq
+  simp [f] at *
 
 section
 open Classical
@@ -129,8 +163,16 @@ example {n : ℕ} (A : Finset ℕ)
     ∃ m ∈ A, ∃ k ∈ A, Nat.Coprime m k := by
   have : ∃ t ∈ range n, 1 < #({u ∈ A | u / 2 = t}) := by
     apply exists_lt_card_fiber_of_mul_lt_card_of_maps_to
-    · sorry
-    · sorry
+    · intro a aA
+      specialize hA' aA
+      simp [mem_range] at *
+      apply Nat.div_lt_of_lt_mul hA'
+    · rw [card_range, hA, mul_one]
+      apply Nat.lt_succ_self
   rcases this with ⟨t, ht, ht'⟩
   simp only [one_lt_card, mem_filter] at ht'
-  sorry
+  rcases ht' with ⟨m, ⟨mA, m2eq⟩, k, ⟨kA, k2eq⟩, mneqk⟩
+  have : m + 1 = k ∨ m = k + 1 := by omega
+  rcases this with (hl | hr)
+  · use m, mA, k, kA; simp [← hl]
+  · use k, kA, m, mA; simp [hr]
