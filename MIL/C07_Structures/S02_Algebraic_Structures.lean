@@ -12,6 +12,9 @@ structure Group₁ (α : Type*) where
   one_mul : ∀ x : α, mul one x = x
   inv_mul_cancel : ∀ x : α, mul (inv x) x = one
 
+#check Group
+#print Group
+
 structure Grp₁ where
   α : Type*
   str : Group₁ α
@@ -48,14 +51,20 @@ def permGroup {α : Type*} : Group₁ (Equiv.Perm α)
   mul f g := Equiv.trans g f
   one := Equiv.refl α
   inv := Equiv.symm
-  mul_assoc f g h := (Equiv.trans_assoc _ _ _).symm
+  mul_assoc _ _ _ := (Equiv.trans_assoc _ _ _).symm
   one_mul := Equiv.trans_refl
   mul_one := Equiv.refl_trans
   inv_mul_cancel := Equiv.self_trans_symm
 
 structure AddGroup₁ (α : Type*) where
-  (add : α → α → α)
-  -- fill in the rest
+  add : α → α → α
+  zero : α
+  neg : α → α
+  add_assoc : ∀ x y z : α, add (add x y) z = add x (add y z)
+  add_zero : ∀ x : α, add x zero = x
+  zero_add : ∀ x : α, add zero x = x
+  neg_add_cancel : ∀ x : α, add (neg x) x = zero
+
 @[ext]
 structure Point where
   x : ℝ
@@ -67,11 +76,20 @@ namespace Point
 def add (a b : Point) : Point :=
   ⟨a.x + b.x, a.y + b.y, a.z + b.z⟩
 
-def neg (a : Point) : Point := sorry
+def neg (a : Point) : Point :=
+  ⟨- a.x, - a.y, - a.z⟩
 
-def zero : Point := sorry
+def zero : Point := ⟨0, 0, 0⟩
 
-def addGroupPoint : AddGroup₁ Point := sorry
+def addGroupPoint : AddGroup₁ Point where
+  add := add
+  zero := zero
+  neg := neg
+  add_assoc a b c := by ext <;> dsimp <;> apply add_assoc
+  add_zero a := by ext <;> rw [add, zero] <;> dsimp <;> apply add_zero
+  zero_add a := by ext <;> rw [add,zero] <;> dsimp <;> apply zero_add
+  neg_add_cancel a := by
+    ext <;> rw [neg, add, zero] <;> dsimp <;> apply neg_add_cancel
 
 end Point
 
@@ -107,7 +125,7 @@ instance {α : Type*} : Group₂ (Equiv.Perm α) where
   mul f g := Equiv.trans g f
   one := Equiv.refl α
   inv := Equiv.symm
-  mul_assoc f g h := (Equiv.trans_assoc _ _ _).symm
+  mul_assoc _ _ _ := (Equiv.trans_assoc _ _ _).symm
   one_mul := Equiv.trans_refl
   mul_one := Equiv.refl_trans
   inv_mul_cancel := Equiv.self_trans_symm
@@ -168,6 +186,35 @@ def foo : f * 1 * g⁻¹ = g.symm.trans ((Equiv.refl α).trans f) :=
 
 end
 
+namespace Point
+
 class AddGroup₂ (α : Type*) where
   add : α → α → α
-  -- fill in the rest
+  zero : α
+  neg : α → α
+  add_assoc : ∀ x y z : α, add (add x y) z = add x (add y z)
+  add_zero : ∀ x : α, add x zero = x
+  zero_add : ∀ x : α, add zero x = x
+  neg_add_cancel : ∀ x : α, add (neg x) x = zero
+
+instance : AddGroup₂ Point where
+  add := add
+  zero := zero
+  neg := neg
+  add_assoc a b c := by ext <;> dsimp <;> apply add_assoc
+  add_zero a := by ext <;> rw [add, zero] <;> dsimp <;> apply add_zero
+  zero_add a := by ext <;> rw [add,zero] <;> dsimp <;> apply zero_add
+  neg_add_cancel a := by
+    ext <;> rw [neg, add, zero] <;> dsimp <;> apply neg_add_cancel
+
+instance {α : Type*} [AddGroup₂ α] : Add α := ⟨AddGroup₂.add⟩
+
+instance {α : Type*} [AddGroup₂ α] : Zero α := ⟨AddGroup₂.zero⟩
+
+instance {α : Type*} [AddGroup₂ α] : Neg α := ⟨AddGroup₂.neg⟩
+
+#check (⟨2,3,4⟩ + ⟨3,4,5⟩ : Point)
+#check (0 : Point)
+#check (- ⟨1,2,3⟩ : Point)
+
+end Point
