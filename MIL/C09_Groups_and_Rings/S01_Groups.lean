@@ -58,7 +58,7 @@ example : AddSubgroup ℚ where
   add_mem' := by
     rintro _ _ ⟨n, rfl⟩ ⟨m, rfl⟩
     use n + m
-    simp
+    simp only [Int.cast_add]
   zero_mem' := by
     use 0
     simp
@@ -86,13 +86,18 @@ def conjugate {G : Type*} [Group G] (x : G) (H : Subgroup G) : Subgroup G where
   carrier := {a : G | ∃ h, h ∈ H ∧ a = x * h * x⁻¹}
   one_mem' := by
     dsimp
-    sorry
+    use 1, H.one_mem
+    group
   inv_mem' := by
     dsimp
-    sorry
+    rintro a ⟨h, ⟨hH, rfl⟩⟩
+    use h⁻¹, H.inv_mem hH
+    group
   mul_mem' := by
     dsimp
-    sorry
+    rintro a b ⟨ha, ⟨haH, rfl⟩⟩ ⟨hb, ⟨hbH, rfl⟩⟩
+    use ha * hb, H.mul_mem haH hbH
+    group
 
 example {G H : Type*} [Group G] [Group H] (G' : Subgroup G) (f : G →* H) : Subgroup H :=
   Subgroup.map f G'
@@ -117,23 +122,44 @@ variable {G H : Type*} [Group G] [Group H]
 open Subgroup
 
 example (φ : G →* H) (S T : Subgroup H) (hST : S ≤ T) : comap φ S ≤ comap φ T := by
-  sorry
+  simp [comap]
+  intro x xS
+  simp [Set.mem_preimage] at *
+  exact hST xS
 
 example (φ : G →* H) (S T : Subgroup G) (hST : S ≤ T) : map φ S ≤ map φ T := by
-  sorry
+  simp [map]
+  intro x xS
+  simp [Set.mem_preimage]
+  use x
+  exact ⟨hST xS, rfl⟩
 
 variable {K : Type*} [Group K]
 
 -- Remember you can use the `ext` tactic to prove an equality of subgroups.
 example (φ : G →* H) (ψ : H →* K) (U : Subgroup K) :
     comap (ψ.comp φ) U = comap φ (comap ψ U) := by
-  sorry
+  ext x
+  simp only [mem_comap]
+  rfl
 
 -- Pushing a subgroup along one homomorphism and then another is equal to
 -- pushing it forward along the composite of the homomorphisms.
 example (φ : G →* H) (ψ : H →* K) (S : Subgroup G) :
     map (ψ.comp φ) S = map ψ (S.map φ) := by
-  sorry
+  ext k
+  simp only [mem_map]
+  constructor
+  · rintro ⟨x, xS, hx⟩
+    use φ x
+    constructor
+    · use x
+    · exact hx
+  · rintro ⟨y, ⟨x, xS, hx⟩, hy⟩
+    use x, xS
+    simp
+    rw [hx]
+    rw [hy]
 
 end exercises
 
@@ -153,13 +179,26 @@ lemma eq_bot_iff_card {G : Type*} [Group G] {H : Subgroup G} :
     H = ⊥ ↔ Nat.card H = 1 := by
   suffices (∀ x ∈ H, x = 1) ↔ ∃ x ∈ H, ∀ a ∈ H, a = x by
     simpa [eq_bot_iff_forall, Nat.card_eq_one_iff_exists]
-  sorry
+  constructor
+  · intro h
+    use 1, H.one_mem
+  · rintro ⟨x, ⟨xH, h⟩⟩
+    intro y yH
+    have : 1 = x := h 1 H.one_mem
+    rw [this]
+    exact h y yH
 
 #check card_dvd_of_le
 
 lemma inf_bot_of_coprime {G : Type*} [Group G] (H K : Subgroup G)
     (h : (Nat.card H).Coprime (Nat.card K)) : H ⊓ K = ⊥ := by
-  sorry
+  apply eq_bot_iff_card.mpr
+  apply Nat.eq_one_of_dvd_coprimes h
+  · show Nat.card (H ⊓ K : Subgroup G) ∣ Nat.card H
+    exact card_dvd_of_le inf_le_left
+  · show Nat.card (H ⊓ K : Subgroup G) ∣ Nat.card K
+    exact card_dvd_of_le inf_le_right
+
 open Equiv
 
 example {X : Type*} [Finite X] : Subgroup.closure {σ : Perm X | Perm.IsCycle σ} = ⊤ :=
@@ -228,14 +267,40 @@ example {G : Type*} [Group G] (H : Subgroup G) : G ≃ (G ⧸ H) × H :=
 variable {G : Type*} [Group G]
 
 lemma conjugate_one (H : Subgroup G) : conjugate 1 H = H := by
-  sorry
+  ext x
+  constructor
+  · intro xconj
+    have : ∃ h, h ∈ H ∧ x = 1 * h * 1⁻¹ := xconj
+    rcases this with ⟨h, hH, xeq⟩
+    rw [xeq]
+    rw [one_mul, inv_one, mul_one]
+    exact hH
+  · intro xH
+    show ∃ h, h ∈ H ∧ x = 1 * h * 1⁻¹
+    use x, xH
+    group
 
 instance : MulAction G (Subgroup G) where
   smul := conjugate
   one_smul := by
-    sorry
+    intro H
+    exact conjugate_one H
   mul_smul := by
-    sorry
+    intro x y H
+    show conjugate (x * y) H = conjugate x (conjugate y H)
+    ext g
+    constructor
+    · intro gconj
+      rcases gconj with ⟨h, hH, heq⟩
+      use y * h * y⁻¹
+      constructor
+      · use h
+      · group at *
+        exact heq
+    · rintro ⟨h, hH, rfl⟩
+      rcases hH with ⟨i, iH, rfl⟩
+      use i, iH
+      group
 
 end GroupActions
 
@@ -274,7 +339,12 @@ open MonoidHom
 
 lemma aux_card_eq [Finite G] (h' : Nat.card G = Nat.card H * Nat.card K) :
     Nat.card (G ⧸ H) = Nat.card K := by
-  sorry
+  apply Nat.eq_of_mul_eq_mul_right (m := Nat.card H) Nat.card_pos
+  nth_rw 2 [mul_comm]
+  rw [← h']
+  rw [← index_eq_card]
+  rw [index_mul_card]
+
 variable [H.Normal] [K.Normal] [Fintype G] (h : Disjoint H K)
   (h' : Nat.card G = Nat.card H * Nat.card K)
 
@@ -283,11 +353,53 @@ variable [H.Normal] [K.Normal] [Fintype G] (h : Disjoint H K)
 #check restrict
 #check ker_restrict
 
+lemma injective_comp_of_inj_of_inj {α β γ : Type*} (f : α → β) (g : β → γ)
+    (injf : Function.Injective f) (injg : Function.Injective g) : Function.Injective (g ∘ f) := by
+  intro x y h
+  have : g (f x) = g (f y) := h
+  exact injf (injg this)
+
 def iso₁ : K ≃* G ⧸ H := by
-  sorry
+  let f : K →* G ⧸ H := (QuotientGroup.mk' H).restrict K
+  apply MulEquiv.ofBijective f
+  apply Nat.bijective_iff_injective_and_card f |>.mpr
+  constructor
+  · rw [← ker_eq_bot_iff, (QuotientGroup.mk' H).ker_restrict K]
+    simp only [QuotientGroup.ker_mk', subgroupOf_eq_bot]
+    exact h
+  · symm
+    exact aux_card_eq h'
+
+def iso₁' : H ≃* G ⧸ K := by
+  let f : H →* G ⧸ K := (QuotientGroup.mk' K).restrict H
+  apply MulEquiv.ofBijective f
+  apply Nat.bijective_iff_injective_and_card f |>.mpr
+  constructor
+  · rw [← ker_eq_bot_iff, (QuotientGroup.mk' K).ker_restrict H]
+    simp only [QuotientGroup.ker_mk', subgroupOf_eq_bot]
+    exact h.symm
+  · symm
+    rw [mul_comm] at h'
+    exact aux_card_eq h'
+
 def iso₂ : G ≃* (G ⧸ K) × (G ⧸ H) := by
-  sorry
+  let fK : G →* G ⧸ K := QuotientGroup.mk' K
+  let fH : G →* G ⧸ H := QuotientGroup.mk' H
+  set f : G →* (G ⧸ K) × (G ⧸ H) := MonoidHom.prod fK fH with f_def
+  apply MulEquiv.ofBijective f
+  apply Nat.bijective_iff_injective_and_card f |>.mpr
+  constructor
+  · rw [← ker_eq_bot_iff, ker_prod]
+    rw [QuotientGroup.ker_mk', QuotientGroup.ker_mk']
+    apply h.symm.eq_bot
+  · rw [Nat.card_prod]
+    rw [aux_card_eq h', ← index_eq_card, index_mul_card]
+
 #check MulEquiv.prodCongr
 
-def finalIso : G ≃* H × K :=
-  sorry
+def finalIso : G ≃* H × K := by
+  apply MulEquiv.trans (N := (G ⧸ K) × (G ⧸ H))
+  · exact iso₂ h h'
+  · apply MulEquiv.prodCongr
+    · exact iso₁' h h' |>.symm
+    · exact iso₁ h h' |>.symm
