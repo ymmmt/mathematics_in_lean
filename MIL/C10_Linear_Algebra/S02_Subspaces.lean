@@ -35,11 +35,18 @@ def preimage {W : Type*} [AddCommGroup W] [Module K W] (φ : V →ₗ[K] W) (H :
     Submodule K V where
   carrier := φ ⁻¹' H
   zero_mem' := by
-    sorry
+    rw [Set.mem_preimage, LinearMap.map_zero]
+    apply Submodule.zero_mem
   add_mem' := by
-    sorry
+    intro a b ha hb
+    rw [Set.mem_preimage] at *
+    rw [LinearMap.map_add]
+    exact Submodule.add_mem H ha hb
   smul_mem' := by
-    sorry
+    intro c x hx
+    rw [Set.mem_preimage] at *
+    rw [LinearMap.map_smul]
+    exact Submodule.smul_mem H c hx
 
 example (U : Submodule K V) : Module K U := inferInstance
 
@@ -100,13 +107,24 @@ example {S T : Submodule K V} {x : V} (h : x ∈ S ⊔ T) :
   rw [← S.span_eq, ← T.span_eq, ← Submodule.span_union] at h
   induction h using Submodule.span_induction with
   | mem y h =>
-      sorry
+    simp at h
+    rcases h with (ys | yt)
+    · use y, ys, 0, T.zero_mem
+      module
+    · use 0, S.zero_mem, y, yt
+      module
   | zero =>
-      sorry
+    use 0, S.zero_mem, 0, T.zero_mem
+    module
   | add x y hx hy hx' hy' =>
-      sorry
+    rcases hx' with ⟨sx, sxS, tx, txT, rfl⟩
+    rcases hy' with ⟨sy, syS, ty, tyT, rfl⟩
+    use sx+sy, S.add_mem sxS syS, tx+ty, T.add_mem txT tyT
+    module
   | smul a x hx hx' =>
-      sorry
+    rcases hx' with ⟨s, sS, t, tT, rfl⟩
+    use a • s, S.smul_mem a sS, a • t, T.smul_mem a tT
+    module
 
 section
 
@@ -136,7 +154,15 @@ example : Surjective φ ↔ range φ = ⊤ := range_eq_top.symm
 
 example (E : Submodule K V) (F : Submodule K W) :
     Submodule.map φ E ≤ F ↔ E ≤ Submodule.comap φ F := by
-  sorry
+  constructor
+  · intro h
+    intro e he
+    apply Submodule.mem_comap.mpr
+    have : φ e ∈ Submodule.map φ E := Submodule.mem_map_of_mem he
+    exact h this
+  · rintro h f ⟨e, he, rfl⟩
+    have : e ∈ Submodule.comap φ F := h he
+    exact this
 
 variable (E : Submodule K V)
 
@@ -161,7 +187,18 @@ open Submodule
 #check Submodule.comap_map_eq
 
 example : Submodule K (V ⧸ E) ≃ { F : Submodule K V // E ≤ F } where
-  toFun := sorry
-  invFun := sorry
-  left_inv := sorry
-  right_inv := sorry
+  toFun F := ⟨comap E.mkQ F, by
+    conv_lhs => rw [← E.ker_mkQ, ← comap_bot]
+    gcongr
+    apply bot_le⟩
+  invFun P := map E.mkQ P
+  left_inv P := by
+    dsimp
+    rw [Submodule.map_comap_eq, E.range_mkQ]
+    exact top_inf_eq P
+  right_inv := by
+    intro P
+    ext x
+    dsimp only
+    rw [Submodule.comap_map_eq, E.ker_mkQ, sup_of_le_left]
+    exact P.2
